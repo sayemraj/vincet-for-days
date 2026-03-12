@@ -30,39 +30,43 @@ export async function POST(req: Request) {
 
       case 'update_task':
         const existingTask = db.prepare('SELECT id FROM tasks WHERE id = ?').get(payload.id);
+        const taskCompletedAt = payload.status === 'completed' && (!existingTask || (existingTask as any).status !== 'completed') ? new Date().toISOString() : payload.completedAt || null;
+        
         if (existingTask) {
-          db.prepare('UPDATE tasks SET title=?, status=?, assignee=?, xpReward=?, dependencies=?, comments=?, progress=? WHERE id=?').run(
-            payload.title, payload.status, payload.assignee, payload.xpReward, JSON.stringify(payload.dependencies), JSON.stringify(payload.comments), payload.progress || 0, payload.id
+          db.prepare('UPDATE tasks SET title=?, status=?, assignee=?, xpReward=?, dependencies=?, comments=?, progress=?, dueDate=?, completedAt=? WHERE id=?').run(
+            payload.title, payload.status, payload.assignee, payload.xpReward, JSON.stringify(payload.dependencies), JSON.stringify(payload.comments), payload.progress || 0, payload.dueDate || null, taskCompletedAt, payload.id
           );
         } else {
-          db.prepare('INSERT INTO tasks (id, title, status, assignee, xpReward, dependencies, comments, progress) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-            payload.id, payload.title, payload.status, payload.assignee, payload.xpReward, JSON.stringify(payload.dependencies), JSON.stringify(payload.comments), payload.progress || 0
+          db.prepare('INSERT INTO tasks (id, title, status, assignee, xpReward, dependencies, comments, progress, dueDate, completedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+            payload.id, payload.title, payload.status, payload.assignee, payload.xpReward, JSON.stringify(payload.dependencies), JSON.stringify(payload.comments), payload.progress || 0, payload.dueDate || null, taskCompletedAt
           );
         }
         break;
 
       case 'update_lead':
         const existingLead = db.prepare('SELECT id FROM leads WHERE id = ?').get(payload.id);
+        const leadCreatedAt = payload.createdAt || new Date().toISOString();
         if (existingLead) {
-          db.prepare('UPDATE leads SET name=?, platform=?, status=?, assignee=?, saleLogged=?, saleAmount=? WHERE id=?').run(
-            payload.name, payload.platform, payload.status, payload.assignee, payload.saleLogged ? 1 : 0, payload.saleAmount || 0, payload.id
+          db.prepare('UPDATE leads SET name=?, platform=?, status=?, assignee=?, saleLogged=?, saleAmount=?, createdAt=? WHERE id=?').run(
+            payload.name, payload.platform, payload.status, payload.assignee, payload.saleLogged ? 1 : 0, payload.saleAmount || 0, leadCreatedAt, payload.id
           );
         } else {
-          db.prepare('INSERT INTO leads (id, name, platform, status, assignee, saleLogged, saleAmount) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-            payload.id, payload.name, payload.platform, payload.status, payload.assignee, payload.saleLogged ? 1 : 0, payload.saleAmount || 0
+          db.prepare('INSERT INTO leads (id, name, platform, status, assignee, saleLogged, saleAmount, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+            payload.id, payload.name, payload.platform, payload.status, payload.assignee, payload.saleLogged ? 1 : 0, payload.saleAmount || 0, leadCreatedAt
           );
         }
         break;
 
       case 'update_post':
         const existingPost = db.prepare('SELECT id FROM posts WHERE id = ?').get(payload.id);
+        const postCreatedAt = payload.createdAt || new Date().toISOString();
         if (existingPost) {
-          db.prepare('UPDATE posts SET title=?, platform=?, status=?, author=?, views=?, engagement=? WHERE id=?').run(
-            payload.title, payload.platform, payload.status, payload.author, payload.views || 0, payload.engagement || '', payload.id
+          db.prepare('UPDATE posts SET title=?, platform=?, status=?, author=?, views=?, engagement=?, createdAt=?, scheduledFor=? WHERE id=?').run(
+            payload.title, payload.platform, payload.status, payload.author, payload.views || 0, payload.engagement || '', postCreatedAt, payload.scheduledFor || null, payload.id
           );
         } else {
-          db.prepare('INSERT INTO posts (id, title, platform, status, author, views, engagement) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-            payload.id, payload.title, payload.platform, payload.status, payload.author, payload.views || 0, payload.engagement || ''
+          db.prepare('INSERT INTO posts (id, title, platform, status, author, views, engagement, createdAt, scheduledFor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+            payload.id, payload.title, payload.platform, payload.status, payload.author, payload.views || 0, payload.engagement || '', postCreatedAt, payload.scheduledFor || null
           );
         }
         break;

@@ -506,7 +506,7 @@ export default function TasksPage() {
                             alert('Cannot add this dependency as it would create a circular dependency!');
                             return;
                           }
-                          const updatedDeps = [...selectedTask.dependencies, t.id];
+                          const updatedDeps = Array.from(new Set([...selectedTask.dependencies, t.id]));
                           const updatedTask = { ...selectedTask, dependencies: updatedDeps };
                           socket?.emit('update_task', updatedTask);
                           setSelectedTask(updatedTask);
@@ -605,7 +605,7 @@ export default function TasksPage() {
                     checked={newTaskDependencies.includes(t.id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setNewTaskDependencies([...newTaskDependencies, t.id]);
+                        setNewTaskDependencies(Array.from(new Set([...newTaskDependencies, t.id])));
                       } else {
                         setNewTaskDependencies(newTaskDependencies.filter(id => id !== t.id));
                       }

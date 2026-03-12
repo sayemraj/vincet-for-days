@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Calendar, Trophy, Target, Zap, CheckSquare, Bell, BellOff, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Trophy, Target, Zap, CheckSquare, Bell, BellOff, LogOut, Settings, MessageSquare, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
@@ -30,6 +30,8 @@ export function Sidebar() {
     { name: settings?.section_leads || 'Outreach CRM', href: '/outreach', icon: Users },
     { name: settings?.section_content || 'Content Engine', href: '/content', icon: Calendar },
     { name: settings?.section_tasks || 'Tasks & Projects', href: '/tasks', icon: CheckSquare },
+    { name: 'Calendar', href: '/calendar', icon: CalendarDays },
+    { name: 'Team Chat', href: '/chat', icon: MessageSquare },
   ];
 
   return (

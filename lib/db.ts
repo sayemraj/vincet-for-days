@@ -28,7 +28,9 @@ db.exec(`
     xpReward INTEGER,
     dependencies TEXT,
     comments TEXT,
-    progress INTEGER DEFAULT 0
+    progress INTEGER DEFAULT 0,
+    dueDate TEXT,
+    completedAt TEXT
   );
   CREATE TABLE IF NOT EXISTS leads (
     id TEXT PRIMARY KEY,
@@ -37,7 +39,8 @@ db.exec(`
     status TEXT,
     assignee TEXT,
     saleLogged INTEGER DEFAULT 0,
-    saleAmount INTEGER DEFAULT 0
+    saleAmount INTEGER DEFAULT 0,
+    createdAt TEXT
   );
   CREATE TABLE IF NOT EXISTS posts (
     id TEXT PRIMARY KEY,
@@ -46,13 +49,29 @@ db.exec(`
     status TEXT,
     author TEXT,
     views INTEGER DEFAULT 0,
-    engagement TEXT
+    engagement TEXT,
+    createdAt TEXT,
+    scheduledFor TEXT
   );
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
   );
+  CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    senderId TEXT,
+    text TEXT,
+    imageUrl TEXT,
+    createdAt TEXT
+  );
 `);
+
+// Add columns if they don't exist (for existing databases)
+try { db.exec("ALTER TABLE tasks ADD COLUMN dueDate TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE tasks ADD COLUMN completedAt TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE leads ADD COLUMN createdAt TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE posts ADD COLUMN createdAt TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE posts ADD COLUMN scheduledFor TEXT"); } catch (e) {}
 
 // Insert default settings if not exists
 const defaultSettings = [
