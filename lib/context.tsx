@@ -114,10 +114,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Optimistic updates for deletes to make it feel instant
-        if (event === 'delete_task') setTasks(prev => prev.filter(t => t.id !== payload));
-        if (event === 'delete_user') setUsers(prev => prev.filter(u => u.id !== payload));
-        if (event === 'delete_post') setPosts(prev => prev.filter(p => p.id !== payload));
-        if (event === 'delete_lead') setLeads(prev => prev.filter(l => l.id !== payload));
+        const id = typeof payload === 'object' ? payload?.id : payload;
+        if (event === 'delete_task') {
+          setTasks(prev => {
+            const filtered = prev.filter(t => t.id !== id);
+            // Also remove this task from any dependencies
+            return filtered.map(t => ({
+              ...t,
+              dependencies: t.dependencies?.filter((depId: string) => depId !== id) || []
+            }));
+          });
+        }
+        if (event === 'delete_user') setUsers(prev => prev.filter(u => u.id !== id));
+        if (event === 'delete_post') setPosts(prev => prev.filter(p => p.id !== id));
+        if (event === 'delete_lead') setLeads(prev => prev.filter(l => l.id !== id));
+        
+        if (event === 'clear_all_data') {
+          if (payload === 'tasks') setTasks([]);
+          if (payload === 'leads') setLeads([]);
+          if (payload === 'posts') setPosts([]);
+        }
         
         const token = localStorage.getItem('token');
         if (!token) return;

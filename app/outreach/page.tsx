@@ -15,6 +15,7 @@ type Lead = {
   assignee: string;
   saleLogged?: boolean;
   saleAmount?: number;
+  createdAt?: string;
 };
 
 const initialLeads: Lead[] = [
@@ -49,10 +50,53 @@ export default function OutreachCRM() {
   const [newTargetPlatform, setNewTargetPlatform] = useState<'X' | 'Instagram' | 'Skool'>('X');
   const [saleAmount, setSaleAmount] = useState('');
 
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
+
   const moveLead = (id: string, newStatus: Lead['status']) => {
     const lead = leads.find(l => l.id === id);
     if (lead) {
+      if (newStatus === 'Closed' && !lead.saleLogged) {
+        setSelectedLeadForSale(lead);
+        setIsLogSaleModalOpen(true);
+      }
       socket?.emit('update_lead', { ...lead, status: newStatus });
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, lead: Lead) => {
+    setDraggedLeadId(lead.id);
+    e.dataTransfer.setData('application/json', JSON.stringify(lead));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedLeadId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add('bg-white/[0.08]');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('bg-white/[0.08]');
+  };
+
+  const handleDrop = (e: React.DragEvent, newStatus: Lead['status']) => {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('bg-white/[0.08]');
+    
+    try {
+      const leadData = JSON.parse(e.dataTransfer.getData('application/json')) as Lead;
+      if (leadData.status !== newStatus) {
+        moveLead(leadData.id, newStatus);
+      }
+    } catch (err) {
+      console.error('Failed to parse dropped lead data', err);
     }
   };
 
@@ -236,97 +280,115 @@ export default function OutreachCRM() {
       >
         <div className="flex space-x-6 min-w-max h-full">
           {columns.map((column, colIdx) => (
-            <div key={column} className="w-80 flex flex-col bg-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl">
+            <div 
+              key={column} 
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, column)}
+              className="w-80 flex flex-col bg-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl transition-colors duration-200"
+            >
               <div className="p-5 border-b border-white/5 flex justify-between items-center">
                 <h3 className="font-bold text-white tracking-wide">{column}</h3>
                 <span className="bg-white/10 text-zinc-300 text-xs font-bold px-2.5 py-1 rounded-full border border-white/10">
                   {leads.filter(l => l.status === column).length}
                 </span>
               </div>
-              <div className="p-4 flex-1 overflow-y-auto space-y-4">
+              <div className="p-4 flex-1 overflow-y-auto space-y-4 min-h-[200px]">
                 {filteredLeads.filter(l => l.status === column).map((lead, idx) => (
-                  <motion.div 
-                    key={lead.id} 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 + (colIdx * 0.1) + (idx * 0.05) }}
-                    className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 cursor-grab active:cursor-grabbing shadow-lg"
+                  <div
+                    key={lead.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, lead)}
+                    onDragEnd={handleDragEnd}
+                    className="cursor-grab active:cursor-grabbing"
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border ${
-                        lead.platform === 'X' ? 'bg-black/50 text-white border-white/20' :
-                        lead.platform === 'Instagram' ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border-pink-500/30' :
-                        'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                      }`}>
-                        {lead.platform}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        {user?.role === 'admin' && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm('Are you sure you want to delete this lead?')) {
-                                socket?.emit('delete_lead', lead.id);
-                              }
-                            }}
-                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors border border-red-500/20"
-                            title="Delete Lead"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button onClick={() => setEditingLead(lead)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                    <h4 className="text-lg font-bold text-white mb-4">{lead.name}</h4>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center text-xs font-medium text-zinc-400">
-                        <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold mr-2 text-[10px] shadow-sm">
-                          {lead.assignee.charAt(0)}
-                        </div>
-                        {lead.assignee}
-                      </div>
-                      
-                      {/* Action Buttons based on status */}
-                      {column === 'Target Identified' && (
-                        <button onClick={() => moveLead(lead.id, 'Contacted')} className="text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-all">
-                          DM Sent
-                        </button>
-                      )}
-                      {column === 'Contacted' && (
-                        <button onClick={() => moveLead(lead.id, 'Replied')} className="text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg hover:bg-purple-500/30 transition-all">
-                          Got Reply
-                        </button>
-                      )}
-                      {column === 'Replied' && (
-                        <button onClick={() => moveLead(lead.id, 'Meeting/Pitch')} className="text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-lg hover:bg-yellow-500/30 transition-all">
-                          Pitched
-                        </button>
-                      )}
-                      {column === 'Meeting/Pitch' && (
-                        <div className="flex space-x-2">
-                          <button onClick={() => moveLead(lead.id, 'Closed')} className="text-emerald-400 hover:text-emerald-300 hover:scale-110 transition-transform bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
-                            <CheckCircle2 className="w-5 h-5" />
-                          </button>
-                          <button onClick={() => moveLead(lead.id, 'Failed')} className="text-red-400 hover:text-red-300 hover:scale-110 transition-transform bg-red-500/10 p-1.5 rounded-lg border border-red-500/20">
-                            <XCircle className="w-5 h-5" />
-                          </button>
-                        </div>
-                      )}
-                      {column === 'Closed' && !lead.saleLogged && (
-                        <button onClick={() => { setSelectedLeadForSale(lead); setIsLogSaleModalOpen(true); }} className="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/30 transition-all shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-                          Log Sale
-                        </button>
-                      )}
-                      {column === 'Closed' && lead.saleLogged && (
-                        <span className="text-xs text-emerald-400 font-bold flex items-center bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Logged
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
+                    <motion.div 
+                      layoutId={lead.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ 
+                        opacity: draggedLeadId === lead.id ? 0.4 : 1, 
+                        scale: draggedLeadId === lead.id ? 1.05 : 1,
+                        rotate: draggedLeadId === lead.id ? 2 : 0
+                      }}
+                      transition={{ delay: 0.1 + (idx * 0.05), type: 'spring', stiffness: 300, damping: 20 }}
+                      className={`bg-white/[0.04] border border-white/10 rounded-2xl p-5 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 shadow-lg group relative ${draggedLeadId === lead.id ? 'z-50 ring-2 ring-blue-500/50' : ''}`}
+                    >
+                          <div className="flex justify-between items-start mb-4">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border ${
+                              lead.platform === 'X' ? 'bg-black/50 text-white border-white/20' :
+                              lead.platform === 'Instagram' ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border-pink-500/30' :
+                              'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            }`}>
+                              {lead.platform}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              {user?.role === 'admin' && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Are you sure you want to delete this lead?')) {
+                                      socket?.emit('delete_lead', lead.id);
+                                    }
+                                  }}
+                                  className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors border border-red-500/20"
+                                  title="Delete Lead"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button onClick={() => setEditingLead(lead)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                                <MoreHorizontal className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+                          <h4 className="text-lg font-bold text-white mb-4">{lead.name}</h4>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center text-xs font-medium text-zinc-400">
+                              <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold mr-2 text-[10px] shadow-sm">
+                                {lead.assignee.charAt(0)}
+                              </div>
+                              {lead.assignee}
+                            </div>
+                            
+                            {/* Action Buttons based on status */}
+                            {column === 'Target Identified' && (
+                              <button onClick={() => moveLead(lead.id, 'Contacted')} className="text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-all">
+                                DM Sent
+                              </button>
+                            )}
+                            {column === 'Contacted' && (
+                              <button onClick={() => moveLead(lead.id, 'Replied')} className="text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg hover:bg-purple-500/30 transition-all">
+                                Got Reply
+                              </button>
+                            )}
+                            {column === 'Replied' && (
+                              <button onClick={() => moveLead(lead.id, 'Meeting/Pitch')} className="text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-lg hover:bg-yellow-500/30 transition-all">
+                                Pitched
+                              </button>
+                            )}
+                            {column === 'Meeting/Pitch' && (
+                              <div className="flex space-x-2">
+                                <button onClick={() => moveLead(lead.id, 'Closed')} className="text-emerald-400 hover:text-emerald-300 hover:scale-110 transition-transform bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
+                                  <CheckCircle2 className="w-5 h-5" />
+                                </button>
+                                <button onClick={() => moveLead(lead.id, 'Failed')} className="text-red-400 hover:text-red-300 hover:scale-110 transition-transform bg-red-500/10 p-1.5 rounded-lg border border-red-500/20">
+                                  <XCircle className="w-5 h-5" />
+                                </button>
+                              </div>
+                            )}
+                            {column === 'Closed' && !lead.saleLogged && (
+                              <button onClick={() => { setSelectedLeadForSale(lead); setIsLogSaleModalOpen(true); }} className="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/30 transition-all shadow-[0_0_10px_rgba(52,211,153,0.2)]">
+                                Log Sale
+                              </button>
+                            )}
+                            {column === 'Closed' && lead.saleLogged && (
+                              <span className="text-xs text-emerald-400 font-bold flex items-center bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Logged
+                              </span>
+                            )}
+                          </div>
+                        </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -502,4 +564,3 @@ export default function OutreachCRM() {
     </div>
   );
 }
-

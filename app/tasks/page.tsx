@@ -25,6 +25,8 @@ type Task = {
   dependencies: string[]; // IDs of tasks that must be completed first
   comments: Comment[];
   progress: number;
+  dueDate?: string;
+  completedAt?: string;
 };
 
 const initialTasks: Task[] = [

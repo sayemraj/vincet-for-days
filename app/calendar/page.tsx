@@ -1,109 +1,89 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
-  startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, parseISO 
+  startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckSquare, Users, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { ChevronLeft, ChevronRight, CheckSquare, Users, Calendar as CalendarIcon } from 'lucide-react';
+import { useAppContext } from '@/lib/context';
 
 export default function CalendarPage() {
+  const { tasks, leads, posts, socket } = useAppContext();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchEvents = async () => {
-    try {
-      const res = await fetch('/api/calendar');
-      const data = await res.json();
-      
-      const formattedEvents: any[] = [];
-      
-      // Map tasks
-      data.tasks?.forEach((task: any) => {
-        if (task.dueDate) {
-          formattedEvents.push({
-            id: `task-due-${task.id}`,
-            originalId: task.id,
-            title: `Due: ${task.title}`,
-            date: new Date(task.dueDate),
-            type: 'task',
-            status: task.status,
-            dateField: 'dueDate'
-          });
-        }
-        if (task.completedAt) {
-          formattedEvents.push({
-            id: `task-done-${task.id}`,
-            originalId: task.id,
-            title: `Done: ${task.title}`,
-            date: new Date(task.completedAt),
-            type: 'task-done',
-            status: task.status
-          });
-        }
-      });
-
-      // Map leads
-      data.leads?.forEach((lead: any) => {
-        if (lead.createdAt) {
-          formattedEvents.push({
-            id: `lead-${lead.id}`,
-            originalId: lead.id,
-            title: `New Lead: ${lead.name}`,
-            date: new Date(lead.createdAt),
-            type: 'lead',
-            status: lead.status
-          });
-        }
-      });
-
-      // Map posts
-      data.posts?.forEach((post: any) => {
-        if (post.scheduledFor) {
-          formattedEvents.push({
-            id: `post-sched-${post.id}`,
-            originalId: post.id,
-            title: `Post: ${post.title}`,
-            date: new Date(post.scheduledFor),
-            type: 'post',
-            status: post.status,
-            dateField: 'scheduledFor'
-          });
-        } else if (post.createdAt) {
-          formattedEvents.push({
-            id: `post-created-${post.id}`,
-            originalId: post.id,
-            title: `Post Created: ${post.title}`,
-            date: new Date(post.createdAt),
-            type: 'post',
-            status: post.status
-          });
-        }
-      });
-
-      setEvents(formattedEvents);
-    } catch (error) {
-      console.error('Failed to fetch events', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-
-    const socket = io();
-    socket.on('task_updated', () => {
-      fetchEvents();
+  const events = useMemo(() => {
+    const formattedEvents: any[] = [];
+    
+    // Map tasks
+    tasks?.forEach((task: any) => {
+      if (task.dueDate) {
+        formattedEvents.push({
+          id: `task-due-${task.id}`,
+          originalId: task.id,
+          title: `Due: ${task.title}`,
+          date: new Date(task.dueDate),
+          type: 'task',
+          status: task.status,
+          dateField: 'dueDate'
+        });
+      }
+      if (task.completedAt) {
+        formattedEvents.push({
+          id: `task-done-${task.id}`,
+          originalId: task.id,
+          title: `Done: ${task.title}`,
+          date: new Date(task.completedAt),
+          type: 'task-done',
+          status: task.status,
+          dateField: 'completedAt'
+        });
+      }
     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    // Map leads
+    leads?.forEach((lead: any) => {
+      if (lead.createdAt) {
+        formattedEvents.push({
+          id: `lead-${lead.id}`,
+          originalId: lead.id,
+          title: `New Lead: ${lead.name}`,
+          date: new Date(lead.createdAt),
+          type: 'lead',
+          status: lead.status,
+          dateField: 'createdAt'
+        });
+      }
+    });
+
+    // Map posts
+    posts?.forEach((post: any) => {
+      if (post.scheduledFor) {
+        formattedEvents.push({
+          id: `post-sched-${post.id}`,
+          originalId: post.id,
+          title: `Post: ${post.title}`,
+          date: new Date(post.scheduledFor),
+          type: 'post',
+          status: post.status,
+          dateField: 'scheduledFor'
+        });
+      } else if (post.createdAt) {
+        formattedEvents.push({
+          id: `post-created-${post.id}`,
+          originalId: post.id,
+          title: `Post Created: ${post.title}`,
+          date: new Date(post.createdAt),
+          type: 'post',
+          status: post.status,
+          dateField: 'createdAt'
+        });
+      }
+    });
+
+    return formattedEvents;
+  }, [tasks, leads, posts]);
 
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
@@ -122,30 +102,25 @@ export default function CalendarPage() {
     if (!eventDataStr) return;
     
     const eventData = JSON.parse(eventDataStr);
-    if (!eventData.dateField) return; // Only allow dragging items with a modifiable date field
+    if (!eventData.dateField) return;
 
-    // Optimistic update
-    setEvents(prev => prev.map(ev => 
-      ev.id === eventData.id ? { ...ev, date: day } : ev
-    ));
-
-    try {
-      await fetch('/api/calendar', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: eventData.originalId,
-          type: eventData.type,
-          dateField: eventData.dateField,
-          newDate: day.toISOString()
-        })
-      });
-      
-      const socket = io();
-      socket.emit('task_updated', { id: eventData.originalId });
-    } catch (error) {
-      console.error('Failed to update date', error);
-      fetchEvents(); // Revert on failure
+    const newDateStr = day.toISOString();
+    
+    if (eventData.type === 'task' || eventData.type === 'task-done') {
+      const task = tasks.find(t => t.id === eventData.originalId);
+      if (task) {
+        socket.emit('update_task', { ...task, [eventData.dateField]: newDateStr });
+      }
+    } else if (eventData.type === 'lead') {
+      const lead = leads.find(l => l.id === eventData.originalId);
+      if (lead) {
+        socket.emit('update_lead', { ...lead, [eventData.dateField]: newDateStr });
+      }
+    } else if (eventData.type === 'post') {
+      const post = posts.find(p => p.id === eventData.originalId);
+      if (post) {
+        socket.emit('update_post', { ...post, [eventData.dateField]: newDateStr });
+      }
     }
   };
 

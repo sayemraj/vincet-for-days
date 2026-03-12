@@ -15,6 +15,8 @@ type Post = {
   author: string;
   views?: number;
   engagement?: string;
+  createdAt?: string;
+  scheduledFor?: string;
 };
 
 const initialPosts: Post[] = [

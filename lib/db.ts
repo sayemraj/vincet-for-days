@@ -2,10 +2,14 @@ import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 
 // Use /tmp for Vercel compatibility, otherwise local directory
 const isProduction = process.env.NODE_ENV === 'production';
-const dbPath = isProduction ? path.join(os.tmpdir(), 'database.sqlite') : 'database.sqlite';
+// In this environment, we prefer the local database.sqlite if it exists
+const dbPath = (isProduction && !fs.existsSync('database.sqlite')) 
+  ? path.join(os.tmpdir(), 'database.sqlite') 
+  : 'database.sqlite';
 
 const db = new Database(dbPath);
 

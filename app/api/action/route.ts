@@ -89,19 +89,36 @@ export async function POST(req: Request) {
         break;
 
       case 'delete_user':
-        db.prepare('DELETE FROM users WHERE id = ?').run(payload);
+        const userId = typeof payload === 'object' ? payload.id : payload;
+        db.prepare('DELETE FROM users WHERE id = ?').run(userId);
         break;
 
       case 'delete_task':
-        db.prepare('DELETE FROM tasks WHERE id = ?').run(payload);
+        const taskId = typeof payload === 'object' ? payload.id : payload;
+        db.prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
+        // Cleanup dependencies in other tasks
+        const allTasks = db.prepare('SELECT id, dependencies FROM tasks').all();
+        for (const t of allTasks as any[]) {
+          try {
+            const deps = JSON.parse(t.dependencies || '[]');
+            if (deps.includes(taskId)) {
+              const newDeps = deps.filter((d: string) => d !== taskId);
+              db.prepare('UPDATE tasks SET dependencies = ? WHERE id = ?').run(JSON.stringify(newDeps), t.id);
+            }
+          } catch (e) {
+            // ignore parse errors
+          }
+        }
         break;
 
       case 'delete_lead':
-        db.prepare('DELETE FROM leads WHERE id = ?').run(payload);
+        const leadId = typeof payload === 'object' ? payload.id : payload;
+        db.prepare('DELETE FROM leads WHERE id = ?').run(leadId);
         break;
 
       case 'delete_post':
-        db.prepare('DELETE FROM posts WHERE id = ?').run(payload);
+        const postId = typeof payload === 'object' ? payload.id : payload;
+        db.prepare('DELETE FROM posts WHERE id = ?').run(postId);
         break;
 
       default:
