@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckSquare, Plus, Lock, Unlock, MessageSquare, AlertCircle, CheckCircle2, X, Bell, Send, Trophy, Flame, Search, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '@/components/ui/modal';
@@ -40,6 +40,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const popupCounter = useRef(0);
   
   const [error, setError] = useState<string | null>(null);
   
@@ -166,7 +167,7 @@ export default function TasksPage() {
       }
 
       // Show floating XP popup
-      const popupId = Math.random().toString();
+      const popupId = (popupCounter.current++).toString();
       setXpPopups(prev => [...prev, { id: popupId, xp: task.xpReward, x: window.innerWidth / 2, y: window.innerHeight / 2 }]);
       setTimeout(() => {
         setXpPopups(prev => prev.filter(p => p.id !== popupId));
@@ -194,7 +195,7 @@ export default function TasksPage() {
       timestamp: new Date()
     };
 
-    const updatedTask = { ...selectedTask, comments: [...selectedTask.comments, comment] };
+    const updatedTask = { ...selectedTask, comments: [...(selectedTask.comments || []), comment] };
     socket?.emit('update_task', updatedTask);
     setSelectedTask(updatedTask);
     setNewComment('');
@@ -284,7 +285,7 @@ export default function TasksPage() {
           </div>
         </div>
         
-        {task.dependencies.length > 0 && (
+        {(task.dependencies || []).length > 0 && (
           <div className="mb-4 space-y-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Dependencies:</p>
             <div className="flex flex-wrap gap-1">
@@ -309,7 +310,7 @@ export default function TasksPage() {
             {task.assignee}
           </div>
           <div className="flex items-center space-x-3">
-            {task.comments.length > 0 && (
+            {(task.comments || []).length > 0 && (
               <span className="flex items-center text-xs text-zinc-500">
                 <MessageSquare className="w-3 h-3 mr-1" /> {task.comments.length}
               </span>
@@ -509,7 +510,7 @@ export default function TasksPage() {
                   <label key={t.id} className="flex items-center space-x-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
                     <input 
                       type="checkbox" 
-                      checked={selectedTask.dependencies.includes(t.id)}
+                      checked={(selectedTask.dependencies || []).includes(t.id)}
                       onChange={(e) => {
                         if (e.target.checked) {
                           if (hasCircularDependency(selectedTask.id, t.id, tasks)) {
@@ -540,10 +541,10 @@ export default function TasksPage() {
             <div>
               <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Team Comments</label>
               <div className="space-y-3 max-h-40 overflow-y-auto mb-3 pr-2">
-                {selectedTask.comments.length === 0 ? (
+                {(selectedTask.comments || []).length === 0 ? (
                   <p className="text-sm text-zinc-500 italic">No comments yet. Start the discussion!</p>
                 ) : (
-                  selectedTask.comments.map(c => (
+                  (selectedTask.comments || []).map(c => (
                     <div key={c.id} className="bg-white/5 rounded-xl p-3 border border-white/5">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold text-white">{c.author}</span>
