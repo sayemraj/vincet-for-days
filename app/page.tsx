@@ -47,56 +47,50 @@ export default function Dashboard() {
   }, [realTimeMembers]);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-8 md:p-12 max-w-7xl mx-auto space-y-12">
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-12"
       >
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{settings?.section_dashboard || 'Command Center'}</h1>
-        <p className="text-slate-400">Track your progress towards the $1,000 goal.</p>
+        <h1 className="text-5xl font-extrabold tracking-tighter text-white mb-3">{settings?.section_dashboard || 'Command Center'}</h1>
+        <p className="text-zinc-500 text-lg font-medium">Track your progress towards the $1,000 goal.</p>
       </motion.header>
 
       {/* The Progress Bar */}
       <motion.section 
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 relative overflow-hidden shadow-2xl"
+        className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-3xl p-10 relative overflow-hidden shadow-2xl"
       >
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <Target className="w-48 h-48 text-emerald-500" />
-        </div>
-        
         <div className="relative z-10">
-          <div className="flex justify-between items-end mb-6">
+          <div className="flex justify-between items-end mb-8">
             <div>
-              <p className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-2">Mission Progress</p>
-              <h2 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 drop-shadow-sm">
-                ${dailyStats.totalRevenue} <span className="text-2xl text-zinc-500 font-medium">/ ${dailyStats.goalRevenue}</span>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-3">Mission Progress</p>
+              <h2 className="text-7xl font-extrabold text-white tracking-tighter">
+                ${dailyStats.totalRevenue} <span className="text-3xl text-zinc-600 font-bold">/ ${dailyStats.goalRevenue}</span>
               </h2>
             </div>
             <div className="text-right">
-              <div className="inline-flex items-center justify-center px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                <span className="text-2xl font-bold text-white mr-3">{dailyStats.daysRemaining}</span>
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Days Left</span>
+              <div className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-zinc-800/50 border border-white/5 backdrop-blur-md">
+                <span className="text-3xl font-black text-white mr-3">{dailyStats.daysRemaining}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Days Left</span>
               </div>
             </div>
           </div>
           
-          <div className="h-4 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
+          <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-              className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 relative shadow-[0_0_15px_rgba(52,211,153,0.5)]"
-            >
-              <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress_1s_linear_infinite]" />
-            </motion.div>
+              transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
+              className="h-full bg-emerald-500 rounded-full"
+            />
           </div>
-          <div className="flex justify-between mt-4 text-sm font-medium">
-            <span className="text-zinc-500">Day 18</span>
-            <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">{progressPercentage.toFixed(1)}% Complete</span>
+          <div className="flex justify-between mt-4 text-[10px] font-bold uppercase tracking-[0.1em]">
+            <span className="text-zinc-600">Day 18</span>
+            <span className="text-emerald-500">{progressPercentage.toFixed(1)}% Complete</span>
           </div>
         </div>
       </motion.section>
@@ -107,11 +101,11 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <TrendingUp className="w-5 h-5 mr-2 text-blue-400" />
-          Daily Vital Signs (Last 24h)
+        <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-[0.2em] mb-6 flex items-center">
+          <TrendingUp className="w-4 h-4 mr-2 text-blue-500" />
+          Daily Vital Signs
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <StatCard 
             title="Total Views" 
             value={dailyStats.views.toLocaleString()} 
@@ -145,25 +139,25 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
       >
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h3 className="text-xl font-bold text-white flex items-center">
-            <Trophy className="w-6 h-6 mr-3 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-[0.2em] flex items-center">
+            <Trophy className="w-4 h-4 mr-2 text-yellow-500" />
             {settings?.section_arena || 'The Arena'}
           </h3>
           
           {mostEfficientUser && mostEfficientUser.efficiency > 0 && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2 flex items-center">
-              <Award className="w-5 h-5 text-emerald-400 mr-2" />
-              <div className="text-sm">
-                <span className="text-zinc-400">Most Efficient: </span>
-                <span className="text-white font-bold">{mostEfficientUser.name}</span>
-                <span className="text-emerald-400 ml-2">({mostEfficientUser.efficiency} XP/action)</span>
+            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-4 py-2 flex items-center">
+              <Award className="w-4 h-4 text-emerald-500 mr-2" />
+              <div className="text-xs font-bold">
+                <span className="text-zinc-600 uppercase tracking-[0.1em]">Most Efficient: </span>
+                <span className="text-white">{mostEfficientUser.name}</span>
+                <span className="text-emerald-500 ml-2">({mostEfficientUser.efficiency} XP/action)</span>
               </div>
             </div>
           )}
         </div>
         
-        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
           <div className="divide-y divide-white/5">
             {realTimeMembers.map((member, index) => (
               <motion.div 
@@ -171,37 +165,37 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7 + index * 0.1 }}
-                className="p-6 flex flex-col md:flex-row md:items-center hover:bg-white/[0.04] transition-colors duration-300 gap-4"
+                className="p-8 flex flex-col md:flex-row md:items-center hover:bg-white/[0.02] transition-colors duration-300 gap-6"
               >
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 w-12 text-center">
-                    <span className={`text-2xl md:text-3xl font-black ${
-                      index === 0 ? 'text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 
-                      index === 1 ? 'text-zinc-300 drop-shadow-[0_0_8px_rgba(212,212,216,0.4)]' : 
-                      index === 2 ? 'text-amber-600 drop-shadow-[0_0_8px_rgba(217,119,6,0.4)]' : 'text-zinc-600'
+                  <div className="flex-shrink-0 w-16 text-center">
+                    <span className={`text-4xl font-black ${
+                      index === 0 ? 'text-yellow-500' : 
+                      index === 1 ? 'text-zinc-400' : 
+                      index === 2 ? 'text-amber-700' : 'text-zinc-800'
                     }`}>
                       #{index + 1}
                     </span>
                   </div>
                   
-                  <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white/10 mx-4 shadow-lg">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border border-white/5 mx-6 shadow-lg">
                     <Image src={member.avatar} alt={member.name} fill className="object-cover" referrerPolicy="no-referrer" />
                   </div>
                 </div>
                 
                 <div className="flex-1">
-                  <h4 className="text-lg md:text-xl font-bold text-white flex items-center">
+                  <h4 className="text-2xl font-extrabold text-white tracking-tight flex items-center">
                     {member.name}
-                    {index === 0 && <Flame className="w-5 h-5 ml-2 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]" />}
+                    {index === 0 && <Flame className="w-5 h-5 ml-2 text-orange-500" />}
                   </h4>
-                  <div className="flex flex-wrap items-center mt-2 gap-2">
+                  <div className="flex flex-wrap items-center mt-3 gap-3">
                     {member.badges.map(badge => (
-                      <span key={badge} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-white/5 text-zinc-300 border border-white/10 backdrop-blur-sm">
+                      <span key={badge} className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.1em] bg-zinc-800 text-zinc-400 border border-white/5">
                         {badge}
                       </span>
                     ))}
                     {member.efficiency > 0 && (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 backdrop-blur-sm">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.1em] bg-emerald-500/5 text-emerald-500 border border-emerald-500/10">
                         <Zap className="w-3 h-3 mr-1" />
                         {member.efficiency} XP/action
                       </span>
@@ -210,10 +204,10 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="md:text-right mt-2 md:mt-0">
-                  <div className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 drop-shadow-sm">
-                    {member.xp.toLocaleString()} <span className="text-sm font-bold text-zinc-500">XP</span>
+                  <div className="text-5xl font-extrabold text-white tracking-tighter">
+                    {member.xp.toLocaleString()} <span className="text-sm font-bold text-zinc-600">XP</span>
                   </div>
-                  <div className="text-sm font-medium text-zinc-500 mt-1">
+                  <div className="text-xs font-bold text-zinc-600 uppercase tracking-[0.1em] mt-2">
                     {member.sales} Sales | {member.posts} Posts
                   </div>
                 </div>
@@ -221,7 +215,7 @@ export default function Dashboard() {
             ))}
             
             {realTimeMembers.length === 0 && (
-              <div className="p-8 text-center text-zinc-500">
+              <div className="p-12 text-center text-zinc-600 font-bold uppercase tracking-[0.2em]">
                 No users found in the arena.
               </div>
             )}

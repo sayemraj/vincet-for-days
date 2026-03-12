@@ -38,7 +38,15 @@ export function Sidebar() {
     <div className="flex h-full w-64 flex-col bg-white/[0.02] backdrop-blur-xl border-r border-white/10 z-20 relative">
       <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
         <div className="flex items-center">
-          <Zap className="h-6 w-6 text-emerald-400 mr-2 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <svg viewBox="0 0 24 24" className="h-7 w-7 mr-2 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" fill="none">
+            <defs>
+              <linearGradient id="logoGradient" x1="0" y1="0" x2="0" y2="24">
+                <stop offset="0%" stopColor="#FACC15" />
+                <stop offset="100%" stopColor="#EAB308" />
+              </linearGradient>
+            </defs>
+            <path d="M12 10L6 4H18L12 10ZM12 18L6 12H18L12 18Z" fill="url(#logoGradient)" />
+          </svg>
           <span className="text-xl font-bold tracking-tight text-white">
             {settings?.software_name || 'GrowthGrid'}
           </span>
