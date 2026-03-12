@@ -64,16 +64,24 @@ export function AuthOverlay() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-blue-500" />
         
         <div className="flex items-center justify-center mb-8">
-          <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-            <Zap className="w-6 h-6 text-emerald-400" />
+          <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
+            <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none">
+              <defs>
+                <linearGradient id="logoGradientAuth" x1="0" y1="0" x2="0" y2="24">
+                  <stop offset="0%" stopColor="#FACC15" />
+                  <stop offset="100%" stopColor="#EAB308" />
+                </linearGradient>
+              </defs>
+              <path d="M12 10L6 4H18L12 10ZM12 18L6 12H18L12 18Z" fill="url(#logoGradientAuth)" />
+            </svg>
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-white text-center mb-2">
+        <h2 className="text-3xl font-extrabold text-white text-center mb-3 tracking-tighter">
           {isLogin ? 'Welcome Back' : 'Join GrowthGrid'}
         </h2>
-        <p className="text-zinc-400 text-center mb-8 text-sm">
-          {isLogin ? 'Enter your credentials to continue.' : 'Create an account to start tracking.'}
+        <p className="text-zinc-500 text-center mb-10 text-sm font-medium">
+          {isLogin ? 'Sign in to access your dashboard.' : 'Create your account to get started.'}
         </p>
 
         {error && (
