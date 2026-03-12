@@ -89,7 +89,7 @@ export default function Dashboard() {
             />
           </div>
           <div className="flex justify-between mt-4 text-[10px] font-bold uppercase tracking-[0.1em]">
-            <span className="text-zinc-600">Day 18</span>
+            <span className="text-zinc-600">Day 1</span>
             <span className="text-emerald-500">{progressPercentage.toFixed(1)}% Complete</span>
           </div>
         </div>

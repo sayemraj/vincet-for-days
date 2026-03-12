@@ -15,8 +15,6 @@ type Post = {
   author: string;
   views?: number;
   engagement?: string;
-  createdAt?: string;
-  scheduledFor?: string;
 };
 
 const initialPosts: Post[] = [
@@ -155,9 +153,9 @@ export default function ContentEngine() {
             <BarChart3 className="w-5 h-5 mr-2 text-blue-400" />
             <span className="text-xs font-semibold uppercase tracking-widest">Daily Posts</span>
           </div>
-          <p className="text-4xl font-black text-white drop-shadow-sm">8 <span className="text-sm text-zinc-500 font-medium">/ 12 target</span></p>
+          <p className="text-4xl font-black text-white drop-shadow-sm">0 <span className="text-sm text-zinc-500 font-medium">/ 12 target</span></p>
           <div className="w-full bg-black/40 h-1.5 mt-4 rounded-full overflow-hidden border border-white/5">
-            <motion.div initial={{ width: 0 }} animate={{ width: '66%' }} transition={{ duration: 1, delay: 0.2 }} className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+            <motion.div initial={{ width: 0 }} animate={{ width: '0%' }} transition={{ duration: 1, delay: 0.2 }} className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
           </div>
         </div>
         
@@ -166,9 +164,9 @@ export default function ContentEngine() {
             <EyeIcon className="w-5 h-5 mr-2 text-emerald-400" />
             <span className="text-xs font-semibold uppercase tracking-widest">Avg Views/Post</span>
           </div>
-          <p className="text-4xl font-black text-white drop-shadow-sm">215 <span className="text-sm text-zinc-500 font-medium">/ 200 target</span></p>
+          <p className="text-4xl font-black text-white drop-shadow-sm">0 <span className="text-sm text-zinc-500 font-medium">/ 200 target</span></p>
           <div className="w-full bg-black/40 h-1.5 mt-4 rounded-full overflow-hidden border border-white/5">
-            <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1, delay: 0.3 }} className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
+            <motion.div initial={{ width: 0 }} animate={{ width: '0%' }} transition={{ duration: 1, delay: 0.3 }} className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
           </div>
         </div>
 
@@ -177,9 +175,9 @@ export default function ContentEngine() {
             <Users className="w-5 h-5 mr-2 text-purple-400" />
             <span className="text-xs font-semibold uppercase tracking-widest">Telegram Joins</span>
           </div>
-          <p className="text-4xl font-black text-white drop-shadow-sm">18 <span className="text-sm text-zinc-500 font-medium">/ 20 target</span></p>
+          <p className="text-4xl font-black text-white drop-shadow-sm">0 <span className="text-sm text-zinc-500 font-medium">/ 20 target</span></p>
           <div className="w-full bg-black/40 h-1.5 mt-4 rounded-full overflow-hidden border border-white/5">
-            <motion.div initial={{ width: 0 }} animate={{ width: '90%' }} transition={{ duration: 1, delay: 0.4 }} className="bg-gradient-to-r from-purple-500 to-pink-400 h-full rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
+            <motion.div initial={{ width: 0 }} animate={{ width: '0%' }} transition={{ duration: 1, delay: 0.4 }} className="bg-gradient-to-r from-purple-500 to-pink-400 h-full rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
           </div>
         </div>
 
@@ -188,9 +186,9 @@ export default function ContentEngine() {
             <TrendingUp className="w-5 h-5 mr-2 text-yellow-400" />
             <span className="text-xs font-semibold uppercase tracking-widest">Join Rate</span>
           </div>
-          <p className="text-4xl font-black text-white drop-shadow-sm">1.8% <span className="text-sm text-zinc-500 font-medium">/ 2.0% target</span></p>
+          <p className="text-4xl font-black text-white drop-shadow-sm">0.0% <span className="text-sm text-zinc-500 font-medium">/ 2.0% target</span></p>
           <div className="w-full bg-black/40 h-1.5 mt-4 rounded-full overflow-hidden border border-white/5">
-            <motion.div initial={{ width: 0 }} animate={{ width: '90%' }} transition={{ duration: 1, delay: 0.5 }} className="bg-gradient-to-r from-yellow-500 to-orange-400 h-full rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
+            <motion.div initial={{ width: 0 }} animate={{ width: '0%' }} transition={{ duration: 1, delay: 0.5 }} className="bg-gradient-to-r from-yellow-500 to-orange-400 h-full rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
           </div>
         </div>
       </motion.div>
