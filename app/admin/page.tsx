@@ -337,6 +337,21 @@ export default function AdminPanel() {
           <div className="space-y-4 max-w-xl">
             <div className="flex items-center justify-between p-4 bg-black/20 border border-red-500/10 rounded-xl">
               <div>
+                <h3 className="text-white font-bold">Full Data Reset</h3>
+                <p className="text-sm text-zinc-500">Permanently remove all tasks, leads, posts, and non-admin users.</p>
+              </div>
+              <Button onClick={() => {
+                if (confirm('Are you absolutely sure you want to perform a FULL data reset? This action CANNOT be undone and will remove all non-admin users.')) {
+                  socket?.emit('full_reset', null);
+                  alert('Full data reset initiated.');
+                }
+              }} className="bg-red-600 hover:bg-red-500 text-white">
+                Full Reset
+              </Button>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-black/20 border border-red-500/10 rounded-xl">
+              <div>
                 <h3 className="text-white font-bold">Delete All Tasks</h3>
                 <p className="text-sm text-zinc-500">Permanently remove all active and completed missions.</p>
               </div>

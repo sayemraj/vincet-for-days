@@ -47,13 +47,13 @@ export const teamMembers: TeamMember[] = [
 ];
 
 export const dailyStats = {
-  views: 2140,
+  views: 0,
   viewsTarget: 2400,
-  telegramJoins: 18,
+  telegramJoins: 0,
   telegramTarget: 25,
-  sales: 2,
+  sales: 0,
   salesTarget: 1,
-  daysRemaining: 42,
-  totalRevenue: 230, // 10 sales * $23
+  daysRemaining: 60,
+  totalRevenue: 0,
   goalRevenue: 1000,
 };

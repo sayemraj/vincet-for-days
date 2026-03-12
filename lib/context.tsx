@@ -135,6 +135,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (payload === 'posts') setPosts([]);
         }
         
+        if (event === 'full_reset') {
+          setTasks([]);
+          setLeads([]);
+          setPosts([]);
+          setUsers(prev => prev.filter(u => u.role === 'admin'));
+        }
+        
         const token = localStorage.getItem('token');
         if (!token) return;
 

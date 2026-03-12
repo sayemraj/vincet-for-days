@@ -22,10 +22,11 @@ export async function POST(req: Request) {
         db.prepare('UPDATE settings SET value = ? WHERE key = ?').run(payload.value, payload.key);
         break;
 
-      case 'clear_all_data':
-        if (payload === 'tasks') db.prepare('DELETE FROM tasks').run();
-        if (payload === 'leads') db.prepare('DELETE FROM leads').run();
-        if (payload === 'posts') db.prepare('DELETE FROM posts').run();
+      case 'full_reset':
+        db.prepare('DELETE FROM tasks').run();
+        db.prepare('DELETE FROM leads').run();
+        db.prepare('DELETE FROM posts').run();
+        db.prepare('DELETE FROM users WHERE role != "admin"').run();
         break;
 
       case 'update_task':
