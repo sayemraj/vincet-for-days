@@ -1,7 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 
 type User = {
   id: string;
@@ -15,7 +14,7 @@ type User = {
 type AppContextType = {
   user: User | null;
   setUser: (user: User | null) => void;
-  socket: Socket | null;
+  socket: any | null;
   onlineUsers: User[];
   tasks: any[];
   leads: any[];
@@ -23,13 +22,38 @@ type AppContextType = {
   users: User[];
   settings: Record<string, string>;
   logout: () => void;
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
 };
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user');
+      const storedNotifs = localStorage.getItem('notificationsEnabled');
+      try {
+        if (storedUser) {
+          setTimeout(() => setUser(JSON.parse(storedUser)), 0);
+        }
+        if (storedNotifs !== null) {
+          setTimeout(() => setNotificationsEnabled(storedNotifs === 'true'), 0);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
+  const toggleNotifications = useCallback((enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    localStorage.setItem('notificationsEnabled', String(enabled));
+  }, []);
+
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
@@ -44,125 +68,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     section_content: 'Content Engine'
   });
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    if (!token) return;
 
-    const newSocket = io();
-    setSocket(newSocket);
-
-    if (token) {
-      newSocket.emit('authenticate', token);
-    }
-
-    newSocket.emit('get_initial_data');
-
-    newSocket.on('initial_data', (data) => {
-      setTasks(data.tasks);
-      setLeads(data.leads);
-      setPosts(data.posts);
-      setUsers(data.users);
-      if (data.settings) {
-        setSettings(data.settings);
+    try {
+      const res = await fetch('/api/data', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(data.tasks || []);
+        setLeads(data.leads || []);
+        setPosts(data.posts || []);
+        setUsers(data.users || []);
+        setOnlineUsers(data.users || []); // Simulate all users online for now
+        if (data.settings) {
+          setSettings(data.settings);
+        }
+        
+        // Update current user if it changed
+        if (user) {
+          const updatedCurrentUser = data.users?.find((u: User) => u.id === user.id);
+          if (updatedCurrentUser && JSON.stringify(updatedCurrentUser) !== JSON.stringify(user)) {
+            setUser(updatedCurrentUser);
+            localStorage.setItem('user', JSON.stringify(updatedCurrentUser));
+          }
+        }
       }
-    });
+    } catch (e) {
+      console.error('Failed to fetch data', e);
+    }
+  }, [user]);
 
-    newSocket.on('setting_updated', ({ key, value }) => {
-      setSettings(prev => ({ ...prev, [key]: value }));
-    });
-
-    newSocket.on('data_cleared', (type) => {
-      if (type === 'tasks') setTasks([]);
-      if (type === 'leads') setLeads([]);
-      if (type === 'posts') setPosts([]);
-    });
-
-    newSocket.on('online_users', (users) => {
-      setOnlineUsers(users);
-    });
-
-    newSocket.on('task_updated', (task) => {
-      setTasks(prev => {
-        const idx = prev.findIndex(t => t.id === task.id);
-        if (idx >= 0) {
-          const newTasks = [...prev];
-          newTasks[idx] = task;
-          return newTasks;
+  // Fake socket for Vercel compatibility (REST + Polling)
+  const socket = useMemo(() => {
+    return {
+      emit: async (event: string, payload?: any) => {
+        if (event === 'authenticate') return;
+        if (event === 'get_initial_data') {
+          fetchData();
+          return;
         }
-        return [...prev, task];
-      });
-    });
 
-    newSocket.on('lead_updated', (lead) => {
-      setLeads(prev => {
-        const idx = prev.findIndex(l => l.id === lead.id);
-        if (idx >= 0) {
-          const newLeads = [...prev];
-          newLeads[idx] = lead;
-          return newLeads;
+        // Optimistic updates for deletes to make it feel instant
+        if (event === 'delete_task') setTasks(prev => prev.filter(t => t.id !== payload));
+        if (event === 'delete_user') setUsers(prev => prev.filter(u => u.id !== payload));
+        if (event === 'delete_post') setPosts(prev => prev.filter(p => p.id !== payload));
+        if (event === 'delete_lead') setLeads(prev => prev.filter(l => l.id !== payload));
+        
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+          await fetch('/api/action', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ action: event, payload })
+          });
+          
+          // Refresh data immediately after mutation
+          fetchData();
+        } catch (e) {
+          console.error('Action failed', e);
         }
-        return [...prev, lead];
-      });
-    });
-
-    newSocket.on('post_updated', (post) => {
-      setPosts(prev => {
-        const idx = prev.findIndex(p => p.id === post.id);
-        if (idx >= 0) {
-          const newPosts = [...prev];
-          newPosts[idx] = post;
-          return newPosts;
-        }
-        return [...prev, post];
-      });
-    });
-
-    newSocket.on('user_updated', (updatedUser) => {
-      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-      if (user && user.id === updatedUser.id) {
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
-    });
-
-    newSocket.on('user_created', (newUser) => {
-      setUsers(prev => [...prev, newUser]);
-    });
-
-    newSocket.on('user_deleted', (userId) => {
-      setUsers(prev => prev.filter(u => u.id !== userId));
-    });
-
-    return () => {
-      newSocket.disconnect();
+      },
+      on: () => {},
+      off: () => {},
+      disconnect: () => {}
     };
-  }, []);
+  }, [fetchData]);
 
-  // Re-authenticate when user changes
   useEffect(() => {
-    if (socket && user) {
-      const token = localStorage.getItem('token');
-      if (token) socket.emit('authenticate', token);
+    if (user) {
+      setTimeout(() => fetchData(), 0);
+      // Poll every 5 seconds for real-time feel
+      const interval = setInterval(fetchData, 5000);
+      return () => clearInterval(interval);
     }
-  }, [user, socket]);
+  }, [user, fetchData]);
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    if (socket) {
-      socket.disconnect();
-      const newSocket = io();
-      setSocket(newSocket);
-      newSocket.emit('get_initial_data');
-    }
   };
 
   return (
-    <AppContext.Provider value={{ user, setUser, socket, onlineUsers, tasks, leads, posts, users, settings, logout }}>
+    <AppContext.Provider value={{ user, setUser, socket, onlineUsers, tasks, leads, posts, users, settings, logout, notificationsEnabled, setNotificationsEnabled: toggleNotifications }}>
       {children}
     </AppContext.Provider>
   );

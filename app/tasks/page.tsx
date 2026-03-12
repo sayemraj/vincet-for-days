@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckSquare, Plus, Lock, Unlock, MessageSquare, AlertCircle, CheckCircle2, X, Bell, Send, Trophy, Flame } from 'lucide-react';
+import { CheckSquare, Plus, Lock, Unlock, MessageSquare, AlertCircle, CheckCircle2, X, Bell, Send, Trophy, Flame, Search, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -24,25 +24,28 @@ type Task = {
   xpReward: number;
   dependencies: string[]; // IDs of tasks that must be completed first
   comments: Comment[];
+  progress: number;
 };
 
 const initialTasks: Task[] = [
-  { id: 't1', title: 'Design Landing Page', status: 'Done', assignee: 'Alex', xpReward: 100, dependencies: [], comments: [] },
-  { id: 't2', title: 'Implement Auth', status: 'In Progress', assignee: 'Jordan', xpReward: 150, dependencies: [], comments: [] },
-  { id: 't3', title: 'Launch Campaign', status: 'Todo', assignee: 'Alex', xpReward: 200, dependencies: ['t1', 't2'], comments: [] },
-  { id: 't4', title: 'Write Blog Post', status: 'Todo', assignee: 'Taylor', xpReward: 50, dependencies: [], comments: [] },
+  { id: 't1', title: 'Design Landing Page', status: 'Done', assignee: 'Alex', xpReward: 100, dependencies: [], comments: [], progress: 100 },
+  { id: 't2', title: 'Implement Auth', status: 'In Progress', assignee: 'Jordan', xpReward: 150, dependencies: [], comments: [], progress: 45 },
+  { id: 't3', title: 'Launch Campaign', status: 'Todo', assignee: 'Alex', xpReward: 200, dependencies: ['t1', 't2'], comments: [], progress: 0 },
+  { id: 't4', title: 'Write Blog Post', status: 'Todo', assignee: 'Taylor', xpReward: 50, dependencies: [], comments: [], progress: 0 },
 ];
 
 export default function TasksPage() {
-  const { users, socket, user } = useAppContext();
+  const { users, socket, user, notificationsEnabled } = useAppContext();
   const tasks = useAppContext().tasks as Task[];
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newComment, setNewComment] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // New Task Form
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDependencies, setNewTaskDependencies] = useState<string[]>([]);
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
 
   // Notifications
   const [notifications, setNotifications] = useState<{id: string, text: string, time: Date}[]>([]);
@@ -53,6 +56,7 @@ export default function TasksPage() {
 
   // Simulation of real-time updates
   useEffect(() => {
+    if (!notificationsEnabled) return;
     const interval = setInterval(() => {
       if (Math.random() > 0.7) {
         setNotifications(prev => [{
@@ -63,7 +67,7 @@ export default function TasksPage() {
       }
     }, 20000);
     return () => clearInterval(interval);
-  }, []);
+  }, [notificationsEnabled]);
 
   const hasCircularDependency = (taskId: string, targetDepId: string, currentTasks: Task[]): boolean => {
     // If targetDepId depends on taskId, adding targetDepId as a dependency to taskId creates a cycle.
@@ -92,22 +96,26 @@ export default function TasksPage() {
       id: Math.random().toString(36).substr(2, 9),
       title: newTaskTitle,
       status: 'Todo',
-      assignee: user.name,
+      assignee: newTaskAssignee || user.name,
       xpReward: 50,
       dependencies: newTaskDependencies,
-      comments: []
+      comments: [],
+      progress: 0
     };
     
     socket?.emit('update_task', newTask);
     setNewTaskTitle('');
     setNewTaskDependencies([]);
+    setNewTaskAssignee('');
     setIsNewTaskModalOpen(false);
     
-    setNotifications(prev => [{
-      id: Math.random().toString(),
-      text: `New task "${newTask.title}" created.`,
-      time: new Date()
-    }, ...prev]);
+    if (notificationsEnabled) {
+      setNotifications(prev => [{
+        id: Math.random().toString(),
+        text: `New task "${newTask.title}" created.`,
+        time: new Date()
+      }, ...prev]);
+    }
   };
 
   const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
@@ -158,11 +166,13 @@ export default function TasksPage() {
       }, 2000);
 
       // Add notification
-      setNotifications(prev => [{
-        id: Math.random().toString(),
-        text: `You completed "${task.title}" and earned +${task.xpReward} XP!`,
-        time: new Date()
-      }, ...prev]);
+      if (notificationsEnabled) {
+        setNotifications(prev => [{
+          id: Math.random().toString(),
+          text: `You completed "${task.title}" and earned +${task.xpReward} XP!`,
+          time: new Date()
+        }, ...prev]);
+      }
     }
   };
 
@@ -183,7 +193,7 @@ export default function TasksPage() {
     setNewComment('');
 
     // Check for mentions
-    if (newComment.includes('@')) {
+    if (newComment.includes('@') && notificationsEnabled) {
       setNotifications(prev => [{
         id: Math.random().toString(),
         text: `You mentioned someone in "${selectedTask.title}"`,
@@ -191,6 +201,33 @@ export default function TasksPage() {
       }, ...prev]);
     }
   };
+
+  const handleDeleteTask = (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this task?')) {
+      socket?.emit('delete_task', taskId);
+    }
+  };
+
+  const handleProgressChange = (taskId: string, progress: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const updatedTask = { ...task, progress };
+    socket?.emit('update_task', updatedTask);
+    if (selectedTask?.id === taskId) {
+      setSelectedTask(updatedTask);
+    }
+  };
+
+  const filteredTasks = tasks.filter(t => {
+    const query = searchQuery.toLowerCase();
+    return (
+      t.title.toLowerCase().includes(query) ||
+      t.assignee.toLowerCase().includes(query) ||
+      t.status.toLowerCase().includes(query)
+    );
+  });
 
   const renderTaskCard = (task: Task) => {
     const uncompletedDeps = task.dependencies.filter(depId => {
@@ -210,11 +247,36 @@ export default function TasksPage() {
       >
         <div className="flex justify-between items-start mb-3">
           <h4 className="text-lg font-bold text-white pr-6">{task.title}</h4>
-          {isLocked ? (
-            <Lock className="w-4 h-4 text-red-400 absolute top-5 right-5" />
-          ) : (
-            <Unlock className="w-4 h-4 text-emerald-400 absolute top-5 right-5 opacity-50" />
-          )}
+          <div className="flex items-center space-x-2 absolute top-5 right-5">
+            {user?.role === 'admin' && (
+              <button 
+                onClick={(e) => handleDeleteTask(task.id, e)}
+                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors border border-red-500/20 mr-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {isLocked ? (
+              <Lock className="w-4 h-4 text-red-400" />
+            ) : (
+              <Unlock className="w-4 h-4 text-emerald-400 opacity-50" />
+            )}
+          </div>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Progress</span>
+            <span className="text-[10px] font-bold text-zinc-400">{task.progress}%</span>
+          </div>
+          <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden border border-white/5">
+            <motion.div 
+              initial={{ width: 0 }} 
+              animate={{ width: `${task.progress}%` }} 
+              className={`h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.3)] ${task.status === 'Done' ? 'bg-emerald-500' : 'bg-blue-500'}`} 
+            />
+          </div>
         </div>
         
         {task.dependencies.length > 0 && (
@@ -261,14 +323,24 @@ export default function TasksPage() {
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex justify-between items-end"
+        className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
       >
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{useAppContext().settings?.section_tasks || 'Tasks & Projects'}</h1>
           <p className="text-zinc-400">Manage dependencies, collaborate, and earn XP.</p>
         </div>
-        <div className="flex space-x-3">
-          <Button onClick={() => setIsNewTaskModalOpen(true)}>
+        <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input 
+              type="text" 
+              placeholder="Search tasks, users..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+            />
+          </div>
+          <Button onClick={() => setIsNewTaskModalOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             New Task
           </Button>
@@ -312,7 +384,7 @@ export default function TasksPage() {
                   </span>
                 </div>
                 <div className="p-4 flex-1 overflow-y-auto space-y-4">
-                  {tasks.filter(t => t.status === status).map(renderTaskCard)}
+                  {filteredTasks.filter(t => t.status === status).map(renderTaskCard)}
                 </div>
               </div>
             ))}
@@ -406,6 +478,21 @@ export default function TasksPage() {
             </div>
 
             <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Progress</label>
+                <span className="text-sm font-bold text-blue-400">{selectedTask.progress}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                value={selectedTask.progress}
+                onChange={(e) => handleProgressChange(selectedTask.id, parseInt(e.target.value))}
+                className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Dependencies</label>
               <div className="space-y-2 max-h-40 overflow-y-auto bg-black/10 p-3 rounded-xl border border-white/5">
                 {tasks.filter(t => t.id !== selectedTask.id).map(t => (
@@ -494,6 +581,20 @@ export default function TasksPage() {
             />
           </div>
           
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Assignee</label>
+            <select 
+              value={newTaskAssignee}
+              onChange={(e) => setNewTaskAssignee(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+            >
+              <option value="" className="bg-slate-900">Select Assignee (Default: You)</option>
+              {users.map(u => (
+                <option key={u.id} value={u.name} className="bg-slate-900">{u.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Dependencies (Optional)</label>
             <div className="space-y-2 max-h-40 overflow-y-auto bg-black/10 p-3 rounded-xl border border-white/5">

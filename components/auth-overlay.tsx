@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Zap, Mail, Lock, User as UserIcon } from 'lucide-react';
@@ -8,14 +8,20 @@ import { useAppContext } from '@/lib/context';
 
 export function AuthOverlay() {
   const { user, setUser } = useAppContext();
+  const [mounted, setMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +30,7 @@ export function AuthOverlay() {
 
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
-      const body = isLogin ? { email, password } : { name, email, password };
+      const body = isLogin ? { email, password } : { name, email, password, promoCode };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -91,6 +97,24 @@ export function AuthOverlay() {
                   className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600" 
                   placeholder="John Doe"
                   required={!isLogin}
+                />
+              </div>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Promo Code (Optional)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Zap className="h-4 w-4 text-zinc-500" />
+                </div>
+                <input 
+                  type="text" 
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600" 
+                  placeholder="e.g. sayemking"
                 />
               </div>
             </div>

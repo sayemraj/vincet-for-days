@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Calendar, Trophy, Target, Zap, CheckSquare, Bell, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Trophy, Target, Zap, CheckSquare, Bell, BellOff, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
@@ -11,7 +11,7 @@ import Image from 'next/image';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout, onlineUsers, settings } = useAppContext();
+  const { user, logout, onlineUsers, settings, notificationsEnabled, setNotificationsEnabled } = useAppContext();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'Alex assigned you a new task: "Update API Endpoints"', time: '2m ago', unread: true },
@@ -134,6 +134,30 @@ export function Sidebar() {
             Admin Panel
           </Link>
         )}
+
+        {/* Notifications Toggle */}
+        <div className="mt-8 pt-6 border-t border-white/5 px-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest flex items-center">
+              {notificationsEnabled ? <Bell className="w-3.5 h-3.5 mr-2 text-blue-400" /> : <BellOff className="w-3.5 h-3.5 mr-2 text-zinc-500" />}
+              Popups
+            </span>
+            <button
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+              className={cn(
+                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-black",
+                notificationsEnabled ? "bg-blue-500" : "bg-zinc-700"
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                  notificationsEnabled ? "translate-x-5" : "translate-x-1"
+                )}
+              />
+            </button>
+          </div>
+        </div>
 
         {/* Online Users Section */}
         <div className="mt-8 pt-6 border-t border-white/5">

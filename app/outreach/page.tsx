@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, MessageSquare, CheckCircle2, XCircle, MoreHorizontal, X, DollarSign } from 'lucide-react';
+import { Plus, MessageSquare, CheckCircle2, XCircle, MoreHorizontal, X, DollarSign, Trash2, Users, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -29,13 +29,14 @@ const initialLeads: Lead[] = [
 const columns = ['Target Identified', 'Contacted', 'Replied', 'Meeting/Pitch', 'Closed', 'Failed'] as const;
 
 export default function OutreachCRM() {
-  const { socket, user, users } = useAppContext();
+  const { socket, user, users, settings } = useAppContext();
   const leads = useAppContext().leads as Lead[];
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isNewTargetModalOpen, setIsNewTargetModalOpen] = useState(false);
   const [isLogSaleModalOpen, setIsLogSaleModalOpen] = useState(false);
   const [selectedLeadForSale, setSelectedLeadForSale] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Loading states
   const [isLoggingDM, setIsLoggingDM] = useState(false);
@@ -135,6 +136,16 @@ export default function OutreachCRM() {
   const replyRate = totalOutreach > 0 ? ((repliedLeads / totalOutreach) * 100).toFixed(1) : '0.0';
   const closeRate = totalOutreach > 0 ? ((closedLeads / totalOutreach) * 100).toFixed(1) : '0.0';
 
+  const filteredLeads = leads.filter(l => {
+    const query = searchQuery.toLowerCase();
+    return (
+      l.name.toLowerCase().includes(query) ||
+      l.assignee.toLowerCase().includes(query) ||
+      l.platform.toLowerCase().includes(query) ||
+      l.status.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="p-8 h-full flex flex-col relative">
       <motion.header 
@@ -142,24 +153,40 @@ export default function OutreachCRM() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8 flex justify-between items-end"
       >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{useAppContext().settings?.section_leads || 'Outreach CRM'}</h1>
-          <p className="text-zinc-400">Manage your pipeline and log activities to earn XP.</p>
-        </div>
-        <div className="flex space-x-3">
-          <Button 
-            variant="secondary"
-            onClick={() => setIsLogModalOpen(true)}
-          >
-            <MessageSquare className="w-4 h-4 mr-2 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
-            Log DM (+5 XP)
-          </Button>
-          <Button 
-            onClick={() => setIsNewTargetModalOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Target
-          </Button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{settings?.section_leads || 'Outreach CRM'}</h1>
+            <p className="text-zinc-400">Manage your pipeline and log activities to earn XP.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input 
+                type="text" 
+                placeholder="Search leads, users..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+              />
+            </div>
+            <div className="flex space-x-3 w-full sm:w-auto">
+              <Button 
+                variant="secondary"
+                onClick={() => setIsLogModalOpen(true)}
+                className="flex-1 sm:flex-none"
+              >
+                <MessageSquare className="w-4 h-4 mr-2 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+                Log DM (+5 XP)
+              </Button>
+              <Button 
+                onClick={() => setIsNewTargetModalOpen(true)}
+                className="flex-1 sm:flex-none"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Target
+              </Button>
+            </div>
+          </div>
         </div>
       </motion.header>
 
@@ -217,7 +244,7 @@ export default function OutreachCRM() {
                 </span>
               </div>
               <div className="p-4 flex-1 overflow-y-auto space-y-4">
-                {leads.filter(l => l.status === column).map((lead, idx) => (
+                {filteredLeads.filter(l => l.status === column).map((lead, idx) => (
                   <motion.div 
                     key={lead.id} 
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -233,9 +260,25 @@ export default function OutreachCRM() {
                       }`}>
                         {lead.platform}
                       </span>
-                      <button onClick={() => setEditingLead(lead)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        {user?.role === 'admin' && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Are you sure you want to delete this lead?')) {
+                                socket?.emit('delete_lead', lead.id);
+                              }
+                            }}
+                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md transition-colors border border-red-500/20"
+                            title="Delete Lead"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button onClick={() => setEditingLead(lead)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                     <h4 className="text-lg font-bold text-white mb-4">{lead.name}</h4>
                     <div className="flex justify-between items-center">

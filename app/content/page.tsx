@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar as CalendarIcon, Edit3, Send, BarChart3, TrendingUp, Users, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Edit3, Send, BarChart3, TrendingUp, Users, X, Trash2, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -26,11 +26,12 @@ const initialPosts: Post[] = [
 ];
 
 export default function ContentEngine() {
-  const { socket, user } = useAppContext();
+  const { socket, user, settings } = useAppContext();
   const posts = useAppContext().posts as Post[];
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
   const [isLogPostModalOpen, setIsLogPostModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Loading states
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -88,31 +89,55 @@ export default function ContentEngine() {
     setIsSavingEdit(false);
   };
 
+  const filteredPosts = posts.filter(p => {
+    const query = searchQuery.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(query) ||
+      p.author.toLowerCase().includes(query) ||
+      p.platform.toLowerCase().includes(query) ||
+      p.status.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="p-8 h-full flex flex-col relative">
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex justify-between items-end"
+        className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{useAppContext().settings?.section_content || 'Content & Funnel Engine'}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{settings?.section_content || 'Content & Funnel Engine'}</h1>
           <p className="text-zinc-400">Manage your content calendar and track funnel conversions.</p>
         </div>
-        <div className="flex space-x-3">
-          <Button 
-            variant="secondary"
-            onClick={() => setIsDraftModalOpen(true)}
-          >
-            <Edit3 className="w-4 h-4 mr-2 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]" />
-            Draft Idea
-          </Button>
-          <Button 
-            onClick={() => setIsLogPostModalOpen(true)}
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Log Post (+10 XP)
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input 
+              type="text" 
+              placeholder="Search content, authors..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+            />
+          </div>
+          <div className="flex space-x-3 w-full sm:w-auto">
+            <Button 
+              variant="secondary"
+              onClick={() => setIsDraftModalOpen(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Edit3 className="w-4 h-4 mr-2 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]" />
+              Draft Idea
+            </Button>
+            <Button 
+              onClick={() => setIsLogPostModalOpen(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Log Post (+10 XP)
+            </Button>
+          </div>
         </div>
       </motion.header>
 
@@ -189,7 +214,7 @@ export default function ContentEngine() {
         
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-4">
-            {posts.map((post, idx) => (
+            {filteredPosts.map((post, idx) => (
               <motion.div 
                 key={post.id} 
                 initial={{ opacity: 0, x: -20 }}
@@ -233,14 +258,42 @@ export default function ContentEngine() {
                       <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1">Engagement</p>
                       <p className="text-lg font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">{post.engagement}</p>
                     </div>
-                    <div className="flex items-center ml-4">
+                    <div className="flex items-center ml-4 space-x-2">
+                      {user?.role === 'admin' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Are you sure you want to delete this post?')) {
+                              socket?.emit('delete_post', post.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-400 transition-colors p-1.5 bg-red-500/10 rounded-lg border border-red-500/20"
+                          title="Delete Post"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                       <button onClick={() => setEditingPost(post)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                         <Edit3 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex space-x-3">
+                  <div className="flex items-center space-x-3">
+                    {user?.role === 'admin' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Are you sure you want to delete this post?')) {
+                            socket?.emit('delete_post', post.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-400 transition-colors p-2 bg-red-500/10 rounded-xl border border-red-500/20"
+                        title="Delete Post"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                     <button onClick={() => setEditingPost(post)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all border border-white/10">Edit</button>
                     {post.status === 'Draft' && (
                       <button className="px-4 py-2 bg-blue-600/80 hover:bg-blue-500/80 text-white text-xs font-bold rounded-xl transition-all border border-blue-500/50 shadow-[0_0_10px_rgba(37,99,235,0.3)]">Schedule</button>

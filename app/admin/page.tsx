@@ -29,7 +29,10 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (settings) {
-      setLocalSettings(settings);
+      const timer = setTimeout(() => {
+        setLocalSettings(settings);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [settings]);
 
@@ -237,7 +240,7 @@ export default function AdminPanel() {
               {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-zinc-500 text-sm">
-                    No users found matching "{searchQuery}"
+                    No users found matching &quot;{searchQuery}&quot;
                   </td>
                 </tr>
               )}
