@@ -25,8 +25,6 @@ type Task = {
   dependencies: string[]; // IDs of tasks that must be completed first
   comments: Comment[];
   progress: number;
-  dueDate?: string;
-  completedAt?: string;
 };
 
 const initialTasks: Task[] = [
@@ -38,10 +36,12 @@ const initialTasks: Task[] = [
 
 export default function TasksPage() {
   const { users, socket, user, notificationsEnabled } = useAppContext();
-  const tasks = useAppContext().tasks as Task[];
+  const tasks = (useAppContext().tasks as Task[]) || [];
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const [error, setError] = useState<string | null>(null);
   
   // New Task Form
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
@@ -94,29 +94,34 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newTaskTitle || !user) return;
     
-    const newTask: Task = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newTaskTitle,
-      status: 'Todo',
-      assignee: newTaskAssignee || user.name,
-      xpReward: 50,
-      dependencies: newTaskDependencies,
-      comments: [],
-      progress: 0
-    };
-    
-    socket?.emit('update_task', newTask);
-    setNewTaskTitle('');
-    setNewTaskDependencies([]);
-    setNewTaskAssignee('');
-    setIsNewTaskModalOpen(false);
-    
-    if (notificationsEnabled) {
-      setNotifications(prev => [{
-        id: Math.random().toString(),
-        text: `New task "${newTask.title}" created.`,
-        time: new Date()
-      }, ...prev]);
+    try {
+      const newTask: Task = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: newTaskTitle,
+        status: 'Todo',
+        assignee: newTaskAssignee || user.name,
+        xpReward: 50,
+        dependencies: newTaskDependencies,
+        comments: [],
+        progress: 0
+      };
+      
+      socket?.emit('update_task', newTask);
+      setNewTaskTitle('');
+      setNewTaskDependencies([]);
+      setNewTaskAssignee('');
+      setIsNewTaskModalOpen(false);
+      setError(null);
+      
+      if (notificationsEnabled) {
+        setNotifications(prev => [{
+          id: Math.random().toString(),
+          text: `New task "${newTask.title}" created.`,
+          time: new Date()
+        }, ...prev]);
+      }
+    } catch (err) {
+      setError('Failed to create task. Please try again.');
     }
   };
 
@@ -126,13 +131,13 @@ export default function TasksPage() {
 
     // Check dependencies if moving to In Progress or Done
     if (newStatus !== 'Todo') {
-      const uncompletedDeps = task.dependencies.filter(depId => {
+      const uncompletedDeps = (task.dependencies || []).filter(depId => {
         const depTask = tasks.find(t => t.id === depId);
         return depTask && depTask.status !== 'Done';
       });
       
       if (uncompletedDeps.length > 0) {
-        alert('Cannot start this task until all dependencies are completed!');
+        console.warn('Cannot start this task until all dependencies are completed!');
         return;
       }
     }
@@ -206,9 +211,7 @@ export default function TasksPage() {
 
   const handleDeleteTask = (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this task?')) {
-      socket?.emit('delete_task', taskId);
-    }
+    socket?.emit('delete_task', taskId);
   };
 
   const handleProgressChange = (taskId: string, progress: number) => {
@@ -232,7 +235,7 @@ export default function TasksPage() {
   });
 
   const renderTaskCard = (task: Task) => {
-    const uncompletedDeps = task.dependencies.filter(depId => {
+    const uncompletedDeps = (task.dependencies || []).filter(depId => {
       const depTask = tasks.find(t => t.id === depId);
       return depTask && depTask.status !== 'Done';
     });
@@ -332,6 +335,11 @@ export default function TasksPage() {
           <p className="text-zinc-400">Manage dependencies, collaborate, and earn XP.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-4 py-2 rounded-lg mr-4">
+              {error}
+            </div>
+          )}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <input 
